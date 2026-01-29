@@ -154,6 +154,19 @@ const AdminDashboard = () => {
     useEffect(() => { if (activeTab === 'stock') fetchStocks(); }, [activeTab]);
 
     // --- API CALLS ---
+    // --- DELETE MEMBER FUNCTION ---
+    const handleDeleteMember = async (memberId) => {
+        if (!window.confirm('Are you sure you want to permanently delete this member?')) return;
+        try {
+            await deleteDoc(doc(db, 'members', memberId));
+            showToast('Member deleted successfully', 'success');
+            fetchMembers(); // Refresh the list immediately
+        } catch (error) {
+            console.error('Error deleting member:', error);
+            showToast('Failed to delete member', 'error');
+        }
+    };
+
     const fetchEvents = async () => {
         try {
             const eventsRef = collection(db, 'events');
@@ -1098,7 +1111,8 @@ const AdminDashboard = () => {
                             }}
                                 onClick={() => setSelectedGuest(guest)}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{guest.name}</h3>
+                                    {/* ✅ UPDATED LINE */}
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{guest.fullName || guest.name}</h3>
                                     <span className={`status-badge ${guest.status}`} style={{
                                         padding: '0.25rem 0.75rem',
                                         borderRadius: '20px',
@@ -1132,102 +1146,194 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
+                {/* DETAILED GUEST MODAL */}
                 {selectedGuest && (
-                    <div className="modal-overlay" style={{
+                    <div style={{
                         position: 'fixed',
                         top: 0,
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(0,0,0,0.8)',
+                        background: 'rgba(0, 0, 0, 0.8)',
                         display: 'flex',
-                        justifyContent: 'center',
                         alignItems: 'center',
-                        zIndex: 1000
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                        padding: '2rem'
                     }} onClick={() => setSelectedGuest(null)}>
-                        <div className="modal-content" style={{
-                            background: '#1e1e1e',
+                        <div style={{
+                            background: 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)',
+                            borderRadius: '16px',
+                            maxWidth: '900px',
+                            width: '100%',
+                            maxHeight: '90vh',
+                            overflow: 'auto',
                             padding: '2rem',
-                            borderRadius: '12px',
-                            maxWidth: '500px',
-                            width: '90%',
-                            maxHeight: '80vh',
-                            overflow: 'auto'
+                            position: 'relative',
+                            border: '1px solid #333'
                         }} onClick={(e) => e.stopPropagation()}>
-                            <h2 style={{ marginTop: 0 }}>Guest Details</h2>
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <p><strong>Name:</strong> {selectedGuest.name}</p>
-                                <p><strong>Email:</strong> {selectedGuest.email}</p>
-                                <p><strong>Phone:</strong> {selectedGuest.phone}</p>
-                                <p><strong>Address:</strong> {selectedGuest.address}</p>
-                                <p><strong>Purpose:</strong> {selectedGuest.purpose}</p>
-                                <p><strong>Status:</strong> <span style={{
-                                    color: selectedGuest.status === 'approved' ? '#4caf50' :
-                                        selectedGuest.status === 'rejected' ? '#f44336' : '#ff9800'
-                                }}>{selectedGuest.status.toUpperCase()}</span></p>
-                                <p><strong>Registered:</strong> {new Date(selectedGuest.createdAt).toLocaleString()}</p>
+                            {/* Close Button */}
+                            <button onClick={() => setSelectedGuest(null)} style={{
+                                position: 'absolute',
+                                top: '1rem',
+                                right: '1rem',
+                                background: 'rgba(255, 0, 0, 0.2)',
+                                border: 'none',
+                                color: 'white',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                fontSize: '1.5rem'
+                            }}>×</button>
+
+                            {/* Header */}
+                            <h2 style={{ marginTop: 0, color: '#F4B41A', marginBottom: '1.5rem' }}>
+                                Guest Details: {selectedGuest.fullName}
+                            </h2>
+
+                            {/* Status Badge */}
+                            <div style={{
+                                display: 'inline-block',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '25px',
+                                fontSize: '0.9rem',
+                                fontWeight: 'bold',
+                                marginBottom: '2rem',
+                                background: selectedGuest.status === 'approved' ? 'rgba(76, 175, 80, 0.3)' :
+                                    selectedGuest.status === 'rejected' ? 'rgba(244, 67, 54, 0.3)' :
+                                        'rgba(255, 152, 0, 0.3)',
+                                color: selectedGuest.status === 'approved' ? '#4caf50' :
+                                    selectedGuest.status === 'rejected' ? '#f44336' : '#ff9800'
+                            }}>
+                                Status: {selectedGuest.status?.toUpperCase() || 'PENDING'}
                             </div>
-                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                                {selectedGuest.status === 'pending' && (
-                                    <>
-                                        <button
-                                            onClick={() => updateGuestStatus(selectedGuest.id, 'approved')}
-                                            style={{
-                                                padding: '0.75rem 1.5rem',
-                                                background: '#4caf50',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                cursor: 'pointer',
-                                                flex: 1
+
+                            {/* Personal Information Section */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                <h3 style={{ color: '#F4B41A', marginTop: 0 }}>👤 Personal Information</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <p><strong>Full Name:</strong> {selectedGuest.fullName}</p>
+                                    <p><strong>Age:</strong> {selectedGuest.age} years</p>
+                                    <p><strong>Gender:</strong> {selectedGuest.gender}</p>
+                                    <p><strong>Phone:</strong> {selectedGuest.phone}</p>
+                                    <p style={{ gridColumn: '1 / -1' }}><strong>Email:</strong> {selectedGuest.email}</p>
+                                </div>
+                            </div>
+
+                            {/* Address Details Section */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                <h3 style={{ color: '#F4B41A', marginTop: 0 }}>📍 Address Details</h3>
+                                <p><strong>Full Address:</strong> {selectedGuest.address}</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                    <p><strong>City:</strong> {selectedGuest.city}</p>
+                                    <p><strong>State:</strong> {selectedGuest.state}</p>
+                                    <p><strong>Country:</strong> {selectedGuest.country}</p>
+                                </div>
+                            </div>
+
+                            {/* Visit Information Section */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                <h3 style={{ color: '#F4B41A', marginTop: 0 }}>📅 Visit Information</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <p><strong>Purpose:</strong> {selectedGuest.purposeOfVisit}</p>
+                                    <p><strong>Number of People:</strong> {selectedGuest.numberOfPeople}</p>
+                                    <p><strong>Visit Date:</strong> {selectedGuest.visitDate}</p>
+                                    <p><strong>Visit Time:</strong> {selectedGuest.visitTime}</p>
+                                </div>
+                            </div>
+
+                            {/* Accompanied Persons Section */}
+                            {selectedGuest.accompanied && selectedGuest.accompanied.length > 0 && (
+                                <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                    <h3 style={{ color: '#F4B41A', marginTop: 0 }}>👥 Accompanied Persons ({selectedGuest.accompanied.length})</h3>
+                                    <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                        {selectedGuest.accompanied.map((person, idx) => (
+                                            <div key={idx} style={{
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)'
                                             }}>
-                                            ✓ Approve
-                                        </button>
-                                        <button
-                                            onClick={() => updateGuestStatus(selectedGuest.id, 'rejected')}
-                                            style={{
-                                                padding: '0.75rem 1.5rem',
-                                                background: '#f44336',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                cursor: 'pointer',
-                                                flex: 1
-                                            }}>
-                                            ✗ Reject
-                                        </button>
-                                    </>
+                                                <strong>{person.name}</strong> - {person.age} years ({person.relation})
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Emergency Contact Section */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                <h3 style={{ color: '#F4B41A', marginTop: 0 }}>🚨 Emergency Contact</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <p><strong>Name:</strong> {selectedGuest.emergencyContactName}</p>
+                                    <p><strong>Phone:</strong> {selectedGuest.emergencyContactPhone}</p>
+                                </div>
+                            </div>
+
+                            {/* Additional Information Section */}
+                            {selectedGuest.additionalComments && (
+                                <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                    <h3 style={{ color: '#F4B41A', marginTop: 0 }}>💬 Additional Comments</h3>
+                                    <p style={{ whiteSpace: 'pre-wrap' }}>{selectedGuest.additionalComments}</p>
+                                </div>
+                            )}
+
+                            {/* Metadata Section */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '10px' }}>
+                                <h3 style={{ color: '#F4B41A', marginTop: 0 }}>📋 Registration Info</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <p><strong>Registered:</strong> {new Date(selectedGuest.createdAt).toLocaleString()}</p>
+                                    {selectedGuest.updatedAt && (
+                                        <p><strong>Last Updated:</strong> {new Date(selectedGuest.updatedAt).toLocaleString()}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
+                                {selectedGuest.status !== 'approved' && (
+                                    <button onClick={() => updateGuestStatus(selectedGuest.id, 'approved')} style={{
+                                        padding: '0.75rem 1.5rem',
+                                        background: '#4caf50',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        ✅ Approve
+                                    </button>
                                 )}
-                                <button
-                                    onClick={() => deleteGuest(selectedGuest.id)}
-                                    style={{
+                                {selectedGuest.status !== 'rejected' && (
+                                    <button onClick={() => updateGuestStatus(selectedGuest.id, 'rejected')} style={{
                                         padding: '0.75rem 1.5rem',
-                                        background: '#666',
+                                        background: '#f44336',
                                         color: 'white',
                                         border: 'none',
-                                        borderRadius: '6px',
+                                        borderRadius: '8px',
                                         cursor: 'pointer',
-                                        flex: 1
+                                        fontWeight: 'bold'
                                     }}>
+                                        ❌ Reject
+                                    </button>
+                                )}
+                                <button onClick={() => deleteGuest(selectedGuest.id)} style={{
+                                    padding: '0.75rem 1.5rem',
+                                    background: '#9e9e9e',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}>
                                     🗑️ Delete
-                                </button>
-                                <button
-                                    onClick={() => setSelectedGuest(null)}
-                                    style={{
-                                        padding: '0.75rem 1.5rem',
-                                        background: '#333',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        flex: 1
-                                    }}>
-                                    Close
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
+
             </div>
         );
     };
@@ -1488,6 +1594,31 @@ const AdminDashboard = () => {
                                                     {member.atHyderabad ? '📍 Hyderabad' : '🏠 Other'}
                                                 </span>
                                             </div>
+
+                                            {/* --- NEW DELETE BUTTON --- */}
+                                            <button
+                                                className="delete-icon-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteMember(member.id);
+                                                }}
+                                                title="Delete Member"
+                                                style={{
+                                                    background: 'rgba(255, 0, 0, 0.1)',
+                                                    border: 'none',
+                                                    borderRadius: '50%',
+                                                    width: '35px',
+                                                    height: '35px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    marginLeft: 'auto',
+                                                    fontSize: '1.2rem'
+                                                }}
+                                            >
+                                                🗑️
+                                            </button>
                                         </div>
 
                                         <div className="member-info">
@@ -1499,25 +1630,30 @@ const AdminDashboard = () => {
                                             <p><strong>📋 Patta Per:</strong> {member.pattaPer}</p>
                                         </div>
 
-                                        {member.familyMembers && member.familyMembers.length > 0 && (
-                                            <div className="member-family">
-                                                <strong>👨‍👩‍👧‍👦 Family Members ({member.familyMembers.length}):</strong>
-                                                <ul>
+                                        {/* Family Members Section */}
+                                        <div className="family-section">
+                                            <h4>👥 Family Members ({member.familyMembers?.length || 0}):</h4>
+                                            {member.familyMembers && member.familyMembers.length > 0 ? (
+                                                <div className="family-list">
                                                     {member.familyMembers.map((fm, idx) => (
-                                                        <li key={idx}>
-                                                            {fm.name} ({fm.relation}, {fm.age} yrs) {fm.phone && `📱 ${fm.phone}`}
-                                                        </li>
+                                                        <div key={idx} className="family-member-tag">
+                                                            {fm.name} ({fm.relation}, {fm.age} yrs)
+                                                            {fm.phone && ` 📱 ${fm.phone}`}
+                                                        </div>
                                                     ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                                                </div>
+                                            ) : (
+                                                <p className="no-family">No family members added</p>
+                                            )}
+                                        </div>
 
                                         <div className="member-footer">
-                                            <small>Joined: {new Date(member.createdAt).toLocaleDateString()}</small>
+                                            <small>Joined: {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : 'N/A'}</small>
                                         </div>
                                     </div>
                                 ))}
                             </div>
+
                         )}
 
                     </div>
