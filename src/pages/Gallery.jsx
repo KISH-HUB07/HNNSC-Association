@@ -6,6 +6,9 @@ import sangamamImage from '../assets/sangamam.jpg';
 import nonbu1 from '../assets/nonbu1.jpg';
 import nonbu2 from '../assets/nonbu2.jpg';
 import nonbu3 from '../assets/nonbu3.jpg';
+import nonbu4 from '../assets/nonbu4.jpg';
+import nonbu5 from '../assets/nonbu5.jpg';
+import nonbu6 from '../assets/nonbu6.jpg';
 import kavadi1 from '../assets/kavadi1.jpg';
 import kavadi2 from '../assets/kavadi2.jpg';
 import kavadi3 from '../assets/kavadi3.jpg';
@@ -29,7 +32,7 @@ const Gallery = () => {
             category: 'religious',
             description: 'Nagarathar unique festival celebration in December.',
             thumbnail: nonbu1,
-            images: [nonbu1, nonbu2, nonbu3]
+            images: [nonbu1, nonbu2, nonbu3, nonbu4, nonbu5, nonbu6]
         },
         {
             id: 3,
